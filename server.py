@@ -3,6 +3,7 @@
 import base64
 import json
 import os
+import secrets
 import subprocess
 import sys
 import threading
@@ -11,8 +12,6 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HOST = "0.0.0.0"
 PORT = int(os.environ.get("RV_PORT", "6080"))
-USER = "admin"
-PASSWORD = "2010622"          # 访问密码
 FRAME_DIR = "/tmp/remoteview"
 TARGET_WIDTH = 1600
 INTERVAL = 1.0                    # 秒/帧
@@ -24,6 +23,48 @@ DATA_DIR = os.environ.get("RV_DATA_DIR") or BASE_DIR
 LOG_DIR = os.path.join(DATA_DIR, "logs")
 CLIENTS_FILE = os.path.join(LOG_DIR, "clients.json")
 ACCESS_LOG = os.path.join(LOG_DIR, "access.log")
+CONFIG_FILE = os.path.join(DATA_DIR, "config.json")
+DEFAULT_USER = "admin"
+PW_ALPHABET = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789"
+_cred_lock = threading.Lock()
+_cred = {"user": DEFAULT_USER, "password": "", "mtime": -1.0}
+
+
+def _random_password(n: int = 12) -> str:
+    return "".join(secrets.choice(PW_ALPHABET) for _ in range(n))
+
+
+def _write_config(user: str, password: str) -> None:
+    os.makedirs(DATA_DIR, exist_ok=True)
+    tmp = CONFIG_FILE + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump({"user": user, "password": password}, f, ensure_ascii=False, indent=2)
+    os.chmod(tmp, 0o600)
+    os.replace(tmp, CONFIG_FILE)
+
+
+def current_credentials() -> dict:
+    """读取 config.json；不存在则生成随机密码；文件被改动后自动生效"""
+    with _cred_lock:
+        if not os.path.exists(CONFIG_FILE):
+            pw = _random_password()
+            _write_config(DEFAULT_USER, pw)
+            print("[remote-view] 首次运行，已生成访问密码：%s" % pw, flush=True)
+        try:
+            mtime = os.path.getmtime(CONFIG_FILE)
+        except OSError:
+            return dict(_cred)
+        if mtime != _cred["mtime"]:
+            try:
+                with open(CONFIG_FILE, encoding="utf-8") as f:
+                    cfg = json.load(f)
+                user = str(cfg.get("user") or DEFAULT_USER)
+                pw = str(cfg.get("password") or "")
+                if pw:
+                    _cred.update(user=user, password=pw, mtime=mtime)
+            except Exception:
+                pass          # 正在写入时保持上一次的值
+        return dict(_cred)
 
 _clients_lock = threading.Lock()
 _clients: dict = {}
@@ -211,7 +252,8 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             return False
         user, _, pw = raw.partition(":")
-        return user == USER and pw == PASSWORD
+        cred = current_credentials()
+        return user == cred["user"] and pw == cred["password"]
 
     def _require_auth(self) -> bool:
         if self._auth_ok():
@@ -275,6 +317,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def main() -> None:
     os.makedirs(LOG_DIR, exist_ok=True)
+    current_credentials()
     _dump_clients(force=True)
     threading.Thread(target=worker, daemon=True).start()
     class QuietServer(ThreadingHTTPServer):

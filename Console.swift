@@ -10,7 +10,34 @@ let BUNDLE_RES = Bundle.main.bundlePath + "/Contents/Resources"
 let SERVER_PY = FileManager.default.isReadableFile(atPath: BUNDLE_RES + "/server.py")
     ? BUNDLE_RES + "/server.py"                              // 优先用 App 内置副本
     : DATA_DIR + "/server.py"
-let AUTH_TEXT = "账号 admin    密码 2010622"
+let CONFIG_FILE = DATA_DIR + "/config.json"
+let PW_ALPHABET = Array("abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789")
+
+func randomPassword(_ n: Int = 12) -> String {
+    var out = ""
+    for _ in 0..<n { out.append(PW_ALPHABET[Int.random(in: 0..<PW_ALPHABET.count)]) }
+    return out
+}
+
+/// 读配置；文件不存在返回 nil（由调用方生成），解析失败也返回 nil 以免误覆盖
+func readConfig() -> (user: String, pass: String)? {
+    guard let d = FileManager.default.contents(atPath: CONFIG_FILE),
+          let o = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any],
+          let u = o["user"] as? String,
+          let p = o["password"] as? String, !p.isEmpty else { return nil }
+    return (u, p)
+}
+
+func writeConfig(user: String, pass: String) {
+    try? FileManager.default.createDirectory(atPath: DATA_DIR, withIntermediateDirectories: true)
+    let o: [String: Any] = ["user": user, "password": pass]
+    guard let d = try? JSONSerialization.data(withJSONObject: o, options: [.prettyPrinted]) else { return }
+    try? d.write(to: URL(fileURLWithPath: CONFIG_FILE), options: .atomic)
+    try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: CONFIG_FILE)
+}
+
+var authUser = "admin"
+var authPass = ""
 
 /// 找到可用的 python3（系统自带 / Homebrew / 命令行工具）
 func pythonPath() -> String {
@@ -229,6 +256,11 @@ final class ConsoleView: NSObject, NSApplicationDelegate {
         openBtn.frame = NSRect(x: 134, y: 240, width: 110, height: 26)
         content.addSubview(openBtn)
 
+        let credBtn = NSButton(title: "修改账号密码", target: self, action: #selector(editCredentials))
+        credBtn.bezelStyle = .rounded
+        credBtn.frame = NSRect(x: 254, y: 240, width: 130, height: 26)
+        content.addSubview(credBtn)
+
         // 访问记录
         let recTitle = NSTextField(labelWithString: "设备访问记录（最近在前）")
         recTitle.font = NSFont.boldSystemFont(ofSize: 13)
@@ -251,6 +283,15 @@ final class ConsoleView: NSObject, NSApplicationDelegate {
         lastMsg.textColor = .secondaryLabelColor
         lastMsg.frame = NSRect(x: 24, y: 6, width: 472, height: 18)
         content.addSubview(lastMsg)
+
+        // 首次运行自动生成随机密码
+        if let c = readConfig() {
+            authUser = c.user
+            authPass = c.pass
+        } else {
+            authPass = randomPassword()
+            writeConfig(user: authUser, pass: authPass)
+        }
 
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -311,6 +352,10 @@ final class ConsoleView: NSObject, NSApplicationDelegate {
     }
 
     @objc func refreshNow() {
+        if let c = readConfig() {
+            authUser = c.user
+            authPass = c.pass
+        }
         let running = portOpen(PORT)
         statusLabel.stringValue = running ? "服务已开启" : "服务已关闭"
         statusDot.layer?.backgroundColor = (running ? NSColor.systemGreen : NSColor.systemRed).cgColor
@@ -323,7 +368,7 @@ final class ConsoleView: NSObject, NSApplicationDelegate {
         let ip = lanIP()
         let host = localHostName()
         addrField.stringValue = running
-            ? "本机：  http://127.0.0.1:\(PORT)/\n局域网：http://\(ip):\(PORT)/\n同域名：http://\(host).local:\(PORT)/\n\(AUTH_TEXT)"
+            ? "本机：  http://127.0.0.1:\(PORT)/\n局域网：http://\(ip):\(PORT)/\n同域名：http://\(host).local:\(PORT)/\n账号 \(authUser)    密码 \(authPass)"
             : "服务未开启，无可用地址\n（开启后这里会列出 3 个访问入口）"
 
         // 抓屏是否真的在工作（看最近一帧的生成时间）
@@ -363,9 +408,64 @@ final class ConsoleView: NSObject, NSApplicationDelegate {
         }
     }
 
+    @objc func editCredentials() {
+        var pendingUser = authUser
+        var pendingPass = authPass
+        var hint = ""
+        while true {
+            let alert = NSAlert()
+            alert.messageText = "修改访问账号密码"
+            alert.informativeText = hint.isEmpty
+                ? "保存后立即生效，已登录的浏览器需要重新登录。"
+                : hint
+            alert.addButton(withTitle: "保存")
+            alert.addButton(withTitle: "取消")
+            alert.addButton(withTitle: "随机生成")
+
+            let box = NSView(frame: NSRect(x: 0, y: 0, width: 320, height: 78))
+            let uLabel = NSTextField(labelWithString: "账号")
+            uLabel.font = NSFont.systemFont(ofSize: 12)
+            uLabel.frame = NSRect(x: 2, y: 50, width: 52, height: 18)
+            let uField = NSTextField(frame: NSRect(x: 58, y: 46, width: 258, height: 24))
+            uField.stringValue = pendingUser
+            let pLabel = NSTextField(labelWithString: "密码")
+            pLabel.font = NSFont.systemFont(ofSize: 12)
+            pLabel.frame = NSRect(x: 2, y: 16, width: 52, height: 18)
+            let pField = NSTextField(frame: NSRect(x: 58, y: 12, width: 258, height: 24))
+            pField.stringValue = pendingPass
+            pField.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+            box.addSubview(uLabel); box.addSubview(uField)
+            box.addSubview(pLabel); box.addSubview(pField)
+            alert.accessoryView = box
+
+            let resp = alert.runModal()
+            if resp == .alertThirdButtonReturn {      // 随机生成后回到同一弹窗
+                pendingPass = randomPassword(14)
+                hint = "已生成随机密码，可直接保存。"
+                continue
+            }
+            if resp != .alertFirstButtonReturn { return }
+
+            let u = uField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            let p = pField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            if u.isEmpty || p.count < 6 {
+                pendingUser = u
+                pendingPass = p
+                hint = "账号不能为空，密码至少 6 位。"
+                continue
+            }
+            authUser = u
+            authPass = p
+            writeConfig(user: u, pass: p)
+            lastMsg.stringValue = "账号密码已保存，立即生效"
+            refreshNow()
+            return
+        }
+    }
+
     @objc func copyAddresses() {
         guard portOpen(PORT) else { return }
-        let text = "http://\(lanIP()):\(PORT)/  \(AUTH_TEXT)"
+        let text = "http://\(lanIP()):\(PORT)/  账号 \(authUser) 密码 \(authPass)"
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
         lastMsg.stringValue = "局域网地址与账号已复制"
