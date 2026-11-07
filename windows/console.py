@@ -92,7 +92,7 @@ class App:
         self.root = root
         self.auth_user = srv.DEFAULT_USER
         self.auth_pass = ""
-        self._status_cache = {"ok": False, "error": None, "age_sec": None}
+        self._status_result = None
         self._status_busy = False
         self._after_id = None
         self._msg = ""
@@ -235,7 +235,17 @@ class App:
     def _update_capture_line(self, running: bool) -> None:
         if not running:
             self.cap_label.configure(text="抓屏状态：未运行", fg=DIM)
+            self._status_result = None
             return
+
+        # 子线程只写结果，Tk 的控件一律在主线程（本方法）里改
+        result = self._status_result
+        if result is not None:
+            self._status_result = None
+            self._apply_capture_line(result)
+        elif self.cap_label.cget("text").startswith("抓屏状态：未运行"):
+            self.cap_label.configure(text="抓屏状态：正在连接…", fg=DIM)
+
         if self._status_busy:
             return
         self._status_busy = True
@@ -245,19 +255,17 @@ class App:
                 code, body = srv._http("http://127.0.0.1:%d/status" % srv.PORT,
                                       self.auth_user, self.auth_pass, timeout=3)
                 if code == 200:
-                    self._status_cache = json.loads(body.decode("utf-8"))
+                    st = json.loads(body.decode("utf-8"))
                 else:
-                    self._status_cache = {"ok": False, "error": "状态接口返回 %s" % code}
+                    st = {"ok": False, "error": "状态接口返回 %s" % code}
             except Exception as exc:
-                self._status_cache = {"ok": False, "error": "%s: %s" % (type(exc).__name__, exc)}
-            finally:
-                self._status_busy = False
-                self.root.after(0, self._apply_capture_line)
+                st = {"ok": False, "error": "%s: %s" % (type(exc).__name__, exc)}
+            self._status_result = st
+            self._status_busy = False
 
         threading.Thread(target=job, daemon=True).start()
 
-    def _apply_capture_line(self) -> None:
-        st = self._status_cache
+    def _apply_capture_line(self, st: dict) -> None:
         if st.get("ok"):
             age = st.get("age_sec")
             text = "抓屏状态：正常" + ("（最近一帧 %d 秒前）" % int(age) if age is not None else "")
