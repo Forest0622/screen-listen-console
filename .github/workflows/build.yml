@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  macos:
     runs-on: macos-latest
     steps:
       - name: 检出代码 / Checkout
@@ -43,17 +43,126 @@ jobs:
       - name: 上传产物 / Upload artifact
         uses: actions/upload-artifact@v5
         with:
-          name: ScreenListenConsole-dmg
-          path: dist/屏幕监听控制-安装包.dmg
+          name: macos-dist
+          path: dist/*.dmg
           if-no-files-found: error
 
+  windows:
+    runs-on: windows-latest
+    steps:
+      - name: 检出代码 / Checkout
+        uses: actions/checkout@v5
+
+      - name: 安装 Python / Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 安装依赖 / Install deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pillow pyinstaller
+
+      - name: 语法检查 / Syntax check
+        run: python -m py_compile windows/server.py windows/console.py windows/app.py windows/selftest.py windows/gui_shot.py
+
+      - name: 源码自检 / Self-test from source
+        shell: pwsh
+        run: |
+          $env:RV_PORT = "16081"
+          python windows/selftest.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: 打包 exe / Build exe
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --onefile --windowed --name ScreenListenConsole --icon windows/assets/AppIcon.ico --add-data "windows/assets/AppIcon.ico;assets" --hidden-import server --hidden-import console --distpath windows/dist --workpath windows/build windows/app.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Test-Path "windows/dist/ScreenListenConsole.exe")) { exit 1 }
+
+      - name: exe 自检 / Self-test the built exe
+        shell: pwsh
+        run: |
+          $env:RV_PORT = "16082"
+          $out = Join-Path $env:GITHUB_WORKSPACE "windows/dist/selftest.json"
+          & .\windows\dist\ScreenListenConsole.exe --selftest "--selftest-out=$out"
+          $code = $LASTEXITCODE
+          if (Test-Path $out) { Get-Content $out -Raw -Encoding UTF8 }
+          if ($code -ne 0) { Write-Host "selftest failed: $code"; exit $code }
+
+      - name: 界面截图 / GUI screenshot (可选)
+        continue-on-error: true
+        run: python windows/gui_shot.py windows/dist/windows-main.png
+
+      - name: 安装 Inno Setup / Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: 生成安装包 / Build installer
+        shell: pwsh
+        run: |
+          & "C:/Program Files (x86)/Inno Setup 6/ISCC.exe" windows/installer.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Test-Path "windows/dist/ScreenListenConsoleSetup-1.2.0.exe")) { exit 1 }
+
+      - name: 校验产物 / Verify
+        shell: pwsh
+        run: |
+          Get-ChildItem windows/dist | Format-Table Name, Length
+
+      - name: 上传 exe / Upload exe
+        uses: actions/upload-artifact@v5
+        with:
+          name: windows-exe
+          path: windows/dist/ScreenListenConsole.exe
+          if-no-files-found: error
+
+      - name: 上传安装包 / Upload installer
+        uses: actions/upload-artifact@v5
+        with:
+          name: windows-setup
+          path: windows/dist/ScreenListenConsoleSetup-*.exe
+          if-no-files-found: error
+
+      - name: 上传自检与截图 / Upload selftest and screenshot
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: windows-selftest
+          path: |
+            windows/dist/selftest.json
+            windows/dist/windows-main.png
+          if-no-files-found: warn
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [macos, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取 macOS 产物 / Download macOS
+        uses: actions/download-artifact@v5
+        with:
+          name: macos-dist
+          path: dist/macos
+
+      - name: 取 Windows 产物 / Download Windows
+        uses: actions/download-artifact@v5
+        with:
+          name: windows-setup
+          path: dist/windows
+
       - name: 发布 Release / Publish release
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/ScreenListenConsole-*.dmg
+          files: |
+            dist/macos/ScreenListenConsole-*.dmg
+            dist/windows/ScreenListenConsoleSetup-*.exe
           generate_release_notes: true
           body: |
+            ## macOS（10.15 及以上）
             首次运行会在 `~/.remote-view/config.json` 里生成随机密码，也可以在 App 里点「修改账号密码」修改。
-
             安装后必须给 App 授权「屏幕录制」，然后 `⌘Q` 退出重开一次。
+
+            ## Windows（10 / 11）
+            下载 `ScreenListenConsoleSetup-*.exe` 双击安装，安装完桌面上会有「屏幕监听控制」。
+            配置文件在 `%LOCALAPPDATA%\ScreenListenConsole\config.json`，首次启动自动生成随机密码。
+            端口同为 6080，浏览器打开 `http://本机IP:6080/`，用界面里显示的账号密码登录。

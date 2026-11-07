@@ -1,9 +1,14 @@
 dist/
 *.dmg
 *.app
+windows/dist/
+windows/build/
+*.spec
+*.exe
 .DS_Store
 __pycache__/
 *.pyc
 logs/
 *.log
 .clients.json
+selftest.json

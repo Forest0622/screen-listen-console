@@ -1,10 +1,10 @@
 # Screen Listen Console
 
-A tiny macOS app that lets you **watch the screen of a Mac from a browser, read-only**, on the same local network.
+A tiny app that lets you **watch the screen of a Mac or PC from a browser, read-only**, on the same local network. macOS and Windows builds are feature-identical.
 
 The app is just a console: start/stop the service, show status, list the URLs to open, and show who has connected. **It never shows the live picture** and offers no mouse or keyboard control.
 
-![platform](https://img.shields.io/badge/platform-macOS%2011%2B-lightgrey)
+![platform](https://img.shields.io/badge/platform-macOS%2011%2B%20%7C%20Windows%2010%2F11-lightgrey)
 ![python](https://img.shields.io/badge/runtime-Python%203-blue)
 [![build](https://github.com/Forest0622/screen-listen-console/actions/workflows/build.yml/badge.svg)](https://github.com/Forest0622/screen-listen-console/actions/workflows/build.yml)
 
@@ -87,18 +87,44 @@ Two things will always happen on someone else's Mac — they are not bugs:
 - **Gatekeeper blocks the first launch**: the default build is ad-hoc/self-signed, not notarized. Right-click the app → Open → Open again.
 - **The other person must grant Screen Recording themselves**: TCC permission is per machine, it cannot travel with the bundle.
 
+## Windows build
+
+The Windows edition is a separate implementation with the same behaviour: a Python + Tkinter console, screen capture through Pillow (GDI), and **the same server endpoints, port, authentication, config file format and on-screen information** as the macOS build.
+
+**Install**: download `ScreenListenConsoleSetup-1.2.0.exe` and run it. No administrator rights needed — it installs per user; a "Screen Listen Console" shortcut appears in the Start menu (and on the desktop if you tick the box).
+
+**Use**: open it, press "Start service". The window shows three entry points — `http://127.0.0.1:6080/`, the LAN IP and the computer name — plus the current username and password.
+
+- Config: `%LOCALAPPDATA%\ScreenListenConsole\config.json` (a random 12-character password is generated on first run, changeable in the app)
+- Access log: `logs\clients.json` in the same folder
+- Same port and image settings as macOS, also overridable with `RV_PORT`
+
+**How it works**: `Pillow.ImageGrab` (all monitors at once) → resized to 1600px wide, JPEG quality 55 → latest frame kept in memory, exposed through the same `/`, `/frame.jpg` and `/status` endpoints.
+
+**Building it yourself** (on Windows):
+
+```bat
+pip install pillow pyinstaller
+python -m PyInstaller --noconfirm --onefile --windowed --name ScreenListenConsole ^
+  --icon windows\assets\AppIcon.ico --add-data "windows/assets/AppIcon.ico;assets" ^
+  --distpath windows\dist --workpath windows\build windows\app.py
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" windows\installer.iss
+```
+
+There is no Screen Recording permission gate on Windows. The service still listens on `0.0.0.0:6080`; the Windows firewall asks once on first start — allow the private network.
+
 ## Continuous integration
 
-`.github/workflows/build.yml` compiles the app and builds the DMG on a GitHub macOS runner for every push/PR and uploads the artifact. Pushing a `v*` tag creates a Release with the DMG attached.
+`.github/workflows/build.yml` runs two runners per push/PR: macOS compiles the app and builds the DMG; Windows builds the `.exe` with PyInstaller and wraps it in an Inno Setup installer. The Windows job first runs a self-test (config creation, 401/200 auth, frame output, hot reload, page content, produced exe), and only then produces the installer. A `v*` tag creates a Release with both the DMG and the Windows installer.
 
 ## Configuration
 
 | Want to change | Where |
 |---|---|
-| Username / password | "Change credentials" in the app, or `~/.remote-view/config.json` |
-| Port | `PORT` in `server.py` (also `RV_PORT`); change `PORT` in `Console.swift` too |
-| Image size / quality | `TARGET_WIDTH`, `INTERVAL` in `server.py` |
-| Data directory | defaults to `~/.remote-view`, override with `RV_DATA_DIR` |
+| Username / password | "Change credentials" in the app, or `~/.remote-view/config.json` (Windows: `%LOCALAPPDATA%\ScreenListenConsole\config.json`) |
+| Port | `PORT` in `server.py` / `windows/server.py` (also `RV_PORT`); on macOS also `Console.swift`, not needed on Windows |
+| Image size / quality | `TARGET_WIDTH`, `INTERVAL` in the matching `server.py` |
+| Data directory | macOS `~/.remote-view`, Windows `%LOCALAPPDATA%\ScreenListenConsole`; both overridable with `RV_DATA_DIR` |
 
 ## Known limitations (all measured, not laziness)
 
@@ -117,13 +143,19 @@ Two things will always happen on someone else's Mac — they are not bugs:
 ## Layout
 
 ```
-server.py                 capture service (Python standard library only)
+server.py                 capture service, macOS (Python standard library only)
 Console.swift             the console UI (AppKit, compiled by swiftc)
 make-app.sh               build and assemble the .app
 make-dmg.sh               build the DMG installer
 assets/AppIcon.icns       icon
 docs/使用说明.txt          end-user readme shipped inside the DMG (Chinese)
 docs/images/              screenshots
+windows/server.py         Windows capture service (Pillow ImageGrab)
+windows/console.py        Windows console (Tkinter)
+windows/app.py            Windows entry point (also hosts --selftest)
+windows/selftest.py       source-level self-test
+windows/installer.iss     Inno Setup installer script
+windows/assets/AppIcon.ico Windows icon
 .github/workflows/        CI build and release
 ```
 

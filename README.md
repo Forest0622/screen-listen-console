@@ -1,10 +1,10 @@
 # 屏幕监听控制（Screen Listen Console）
 
-在同一个局域网里，用浏览器**只读查看**一台 Mac 当前屏幕的小工具。
+在同一个局域网里，用浏览器**只读查看**一台电脑当前屏幕的小工具，**macOS 和 Windows 都有**，功能完全一致。
 
 App 本身是一个轻量控制台：只负责开关服务、显示状态、给出访问地址、记录谁访问过——**不显示实时画面**，也不提供鼠标键盘控制。
 
-![platform](https://img.shields.io/badge/platform-macOS%2011%2B-lightgrey)
+![platform](https://img.shields.io/badge/platform-macOS%2011%2B%20%7C%20Windows%2010%2F11-lightgrey)
 ![python](https://img.shields.io/badge/runtime-Python%203-blue)
 [![build](https://github.com/Forest0622/screen-listen-console/actions/workflows/build.yml/badge.svg)](https://github.com/Forest0622/screen-listen-console/actions/workflows/build.yml)
 
@@ -87,18 +87,44 @@ DMG 内含 App、一个指向「应用程序」的软链和一份使用说明，
 - **首次打开被 Gatekeeper 拦**：本项目的默认签名是本机自签 / ad-hoc，没有 Apple 公证。右键点 App →「打开」→ 再点一次「打开」。
 - **对方必须自己授权一次「屏幕录制」**：TCC 权限按机器授予，无法随包携带。
 
+## Windows 版
+
+Windows 版是独立实现的同款：Python + Tkinter 控制台，截图换成 Pillow（GDI），**服务端接口、端口、认证方式、配置文件格式、界面上显示的信息都与 macOS 版一致**。
+
+**安装**：下载 `ScreenListenConsoleSetup-1.2.0.exe` 双击运行，不需要管理员权限，装在当前用户目录下；装完开始菜单和桌面（安装时勾选）会有「屏幕监听控制」。
+
+**使用**：打开后点「开启服务」，界面会给出 `http://127.0.0.1:6080/`、局域网 IP、计算机名三个入口，以及当前账号密码。
+
+- 配置文件：`%LOCALAPPDATA%\ScreenListenConsole\config.json`（首次启动自动生成 12 位随机密码，在 App 里也能改）
+- 访问记录：同目录下 `logs\clients.json`
+- 端口与画质参数和 macOS 版相同，都支持 `RV_PORT` 环境变量覆盖
+
+**原理**：`Pillow.ImageGrab`（多显示器一起抓）→ 缩到 1600px 宽、JPEG 质量 55 → 内存里保存最新一帧，对外暴露与 macOS 版同一套 `/`、`/frame.jpg`、`/status` 接口。
+
+**自己构建**（在 Windows 上）：
+
+```bat
+pip install pillow pyinstaller
+python -m PyInstaller --noconfirm --onefile --windowed --name ScreenListenConsole ^
+  --icon windows\assets\AppIcon.ico --add-data "windows/assets/AppIcon.ico;assets" ^
+  --distpath windows\dist --workpath windows\build windows\app.py
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" windows\installer.iss
+```
+
+Windows 上没有「屏幕录制」授权这一关，装完直接能用。服务同样监听 `0.0.0.0:6080`，首次启动 Windows 防火墙会弹窗，选「允许专用网络」。
+
 ## 自动构建
 
-`.github/workflows/build.yml` 在每次 push / PR 时于 GitHub 的 macOS runner 上编译 App、打 DMG 并上传产物；推一个 `v*` 标签时自动创建 Release 并附上 DMG。
+`.github/workflows/build.yml` 在每次 push / PR 时并行跑两个 runner：macOS 上编译 App、打 DMG，Windows 上用 PyInstaller 打包 `.exe` 并生成 Inno Setup 安装包；Windows 任务会先跑一遍自检（配置生成、401/200 认证、出帧、热加载、页面内容、exe 产物），全部通过才产出安装包。推一个 `v*` 标签时自动创建 Release，同时附上 DMG 和 Windows 安装包。
 
 ## 自定义
 
 | 想改什么 | 改哪里 |
 |---|---|
-| 账号密码 | App 里点「修改账号密码」，或改 `~/.remote-view/config.json` |
-| 端口 | `server.py` 的 `PORT`（也支持 `RV_PORT` 环境变量）；同时改 `Console.swift` 里的 `PORT` |
-| 画质 / 宽度 | `server.py` 的 `TARGET_WIDTH`、`INTERVAL` |
-| 数据目录 | 默认 `~/.remote-view`，可用 `RV_DATA_DIR` 覆盖 |
+| 账号密码 | App 里点「修改账号密码」，或改 `~/.remote-view/config.json`（Windows：`%LOCALAPPDATA%\ScreenListenConsole\config.json`） |
+| 端口 | `server.py` / `windows/server.py` 的 `PORT`（也支持 `RV_PORT` 环境变量）；macOS 还要改 `Console.swift`，Windows 不用 |
+| 画质 / 宽度 | 对应平台的 `TARGET_WIDTH`、`INTERVAL` |
+| 数据目录 | macOS 默认 `~/.remote-view`、Windows 默认 `%LOCALAPPDATA%\ScreenListenConsole`，两边都可用 `RV_DATA_DIR` 覆盖 |
 
 ## 已知限制
 
@@ -117,13 +143,19 @@ DMG 内含 App、一个指向「应用程序」的软链和一份使用说明，
 ## 目录结构
 
 ```
-server.py                 截图服务（Python 标准库，零依赖）
+server.py                 截图服务（macOS，Python 标准库，零依赖）
 Console.swift             控制台（AppKit 手写布局，swiftc 直接编译）
 make-app.sh               编译并组装 .app
 make-dmg.sh               打包 DMG 安装盘
 assets/AppIcon.icns       图标
 docs/使用说明.txt          随安装包分发的说明
 docs/images/              界面截图
+windows/server.py         Windows 截图服务（Pillow ImageGrab）
+windows/console.py        Windows 控制台（Tkinter）
+windows/app.py            Windows 入口（也承载 --selftest）
+windows/selftest.py       源码级自检
+windows/installer.iss     Inno Setup 安装包脚本
+windows/assets/AppIcon.ico Windows 图标
 .github/workflows/        自动构建与发布
 ```
 
