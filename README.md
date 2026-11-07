@@ -20,6 +20,14 @@ Windows 版控制台（这一张是 GitHub Actions 的 Windows 运行器上实�
 
 ![Windows 界面](docs/images/windows-main.png)
 
+Windows 11 真机验证（原生 ARM64 虚拟机，不是 CI）：
+
+![Windows 11 真机界面](docs/images/windows11-arm.png)
+
+上面这张是在 VMware Fusion 里装的一台原生 **Windows 11（ARM64，系统版本 10.0.26300.9457）** 上用同一个 `ScreenListenConsoleSetup-1.2.0.exe`（20,418,925 字节，与 Release 附件同一份文件）实拍的：安装向导（选择“仅为我安装” → 默认安装目录 → 完成并启动）全部走完，控制台正常渲染，点「开启服务」后监听 `6080`、抓屏状态显示「正常（最近一帧 0 秒前）」，访问记录里出现 `127.0.0.1` 的真实访问，防火墙提示也按正常流程弹出。
+
+> 这台虚拟机没有可用的网络适配器（Windows 11 ARM 下 e1000e 无驱动，也没装 VMware Tools），所以「局域网」一行回落到 `127.0.0.1`，「同域名」显示的是计算机名 `DESKTOP-T60DSQD`；联网正常的 Windows 机器上会显示真实局域网 IP。截图里密码是这台虚拟机内自动生成的临时随机值。
+
 > macOS 两张截图里的地址与密码已换成演示值（`192.168.1.23`、`demo-mac.local`、`Demo-Pass-2f9K`），不是真实网络信息。
 
 ## 它长什么样
