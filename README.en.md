@@ -24,7 +24,7 @@ Windows 11 on a real machine (native ARM64 VM, not CI):
 
 ![Windows 11 console](docs/images/windows11-arm.png)
 
-This one was captured on a native **Windows 11 (ARM64, build 10.0.26300.9457)** installed in VMware Fusion, using the same `ScreenListenConsoleSetup-1.2.0.exe` (20,418,925 bytes, byte-identical to the Release asset): the installer ran end to end (“Install for me only” → default folder → Finish and launch), the console rendered correctly, and after starting the service it listened on `6080` with capture status “正常（最近一帧 0 秒前）”, plus a real `127.0.0.1` entry in the access log.
+This one was captured during the **v1.2.0** cycle on a native **Windows 11 (ARM64, build 10.0.26300.9457)** installed in VMware Fusion, using `ScreenListenConsoleSetup-1.2.0.exe` (20,418,925 bytes, byte-identical to that Release asset) — back then the access info was one merged three-line block. Since v1.3.0 it is five rows with a Copy button on each; the current Windows UI is the CI capture above: the installer ran end to end (“Install for me only” → default folder → Finish and launch), the console rendered correctly, and after starting the service it listened on `6080` with capture status “正常（最近一帧 0 秒前）”, plus a real `127.0.0.1` entry in the access log.
 
 > That VM has no working network adapter (e1000e has no Windows 11 ARM driver and VMware Tools is not installed), so the “局域网” line falls back to `127.0.0.1` and the host-name line shows the machine name `DESKTOP-T60DSQD`. A normally networked Windows box shows its real LAN IP. The password in the shot is the temporary random value generated inside that VM.
 
