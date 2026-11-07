@@ -15,7 +15,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: 检出代码 / Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 环境信息 / Toolchain
         run: |
@@ -41,7 +41,7 @@ jobs:
         run: cp "dist/屏幕监听控制-安装包.dmg" "dist/ScreenListenConsole-${GITHUB_REF_NAME}.dmg"
 
       - name: 上传产物 / Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ScreenListenConsole-dmg
           path: dist/屏幕监听控制-安装包.dmg
