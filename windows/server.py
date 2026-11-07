@@ -45,6 +45,25 @@ _cred_lock = threading.Lock()
 _cred = {"user": DEFAULT_USER, "password": "", "mtime": -1.0}
 
 
+def _fix_console_encoding() -> None:
+    """Windows 控制台默认 cp1252/GBK，打中文会直接抛 UnicodeEncodeError；打包成窗口程序后 stdout 可能是 None"""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
+
+def _log(msg: str) -> None:
+    try:
+        print(msg, flush=True)
+    except Exception:
+        pass          # 没有控制台时静默忽略，日志另有落盘
+
+
+_fix_console_encoding()
+
+
 def _ensure_dirs() -> None:
     os.makedirs(LOG_DIR, exist_ok=True)
 
@@ -71,7 +90,7 @@ def current_credentials() -> dict:
         if not os.path.exists(CONFIG_FILE):
             pw = _random_password()
             _write_config(DEFAULT_USER, pw)
-            print("[screen-listen] 首次运行，已生成访问密码：%s" % pw, flush=True)
+            _log("[screen-listen] 首次运行，已生成访问密码：%s" % pw)
         try:
             mtime = os.path.getmtime(CONFIG_FILE)
         except OSError:
@@ -507,9 +526,9 @@ def main() -> None:
     try:
         start_server()
     except OSError as exc:
-        print("端口占用或无法监听：%s" % exc, flush=True)
+        _log("端口占用或无法监听：%s" % exc)
         return
-    print("screen-listen 监听 http://%s:%d" % (HOST, PORT), flush=True)
+    _log("screen-listen 监听 http://%s:%d" % (HOST, PORT))
     try:
         while True:
             time.sleep(1)
@@ -524,6 +543,6 @@ if __name__ == "__main__":
             if a == "--selftest-port" and i + 1 < len(sys.argv):
                 port = int(sys.argv[i + 1])
         ok, report = run_selftest(port=port)
-        print(json.dumps(report, ensure_ascii=False, indent=2))
+        _log(json.dumps(report, ensure_ascii=False, indent=2))
         sys.exit(0 if ok else 1)
     main()
