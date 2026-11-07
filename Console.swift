@@ -155,7 +155,9 @@ final class ConsoleView: NSObject, NSApplicationDelegate {
     var captureLabel: NSTextField!
     var startBtn: NSButton!
     var stopBtn: NSButton!
-    var addrField: NSTextField!
+    var addrRows: [NSTextField] = []
+    var addrCopyBtns: [NSButton] = []
+    var addrValues: [String] = []
     var visitsView: NSTextView!
     var visitsBox: NSScrollView!
     var lastMsg: NSTextField!
@@ -164,29 +166,29 @@ final class ConsoleView: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ n: Notification) {
         window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 520, height: 600),
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 668),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered, defer: false)
         window.title = "屏幕监听控制台"
         window.center()
         window.isReleasedWhenClosed = false
-        let content = NSView(frame: NSRect(x: 0, y: 0, width: 520, height: 600))
+        let content = NSView(frame: NSRect(x: 0, y: 0, width: 520, height: 668))
         window.contentView = content
 
         // 标题
         let title = NSTextField(labelWithString: "屏幕监听服务")
         title.font = NSFont.boldSystemFont(ofSize: 20)
-        title.frame = NSRect(x: 24, y: 548, width: 300, height: 26)
+        title.frame = NSRect(x: 24, y: 616, width: 300, height: 26)
         content.addSubview(title)
 
         let tip = NSTextField(labelWithString: "本窗口只做启停与状态查看，不显示画面")
         tip.font = NSFont.systemFont(ofSize: 11)
         tip.textColor = .secondaryLabelColor
-        tip.frame = NSRect(x: 24, y: 528, width: 460, height: 16)
+        tip.frame = NSRect(x: 24, y: 596, width: 460, height: 16)
         content.addSubview(tip)
 
         // 状态区
-        let panel = NSBox(frame: NSRect(x: 20, y: 440, width: 480, height: 80))
+        let panel = NSBox(frame: NSRect(x: 20, y: 508, width: 480, height: 80))
         panel.boxType = .custom
         panel.borderType = .lineBorder
         panel.fillColor = NSColor.controlBackgroundColor
@@ -211,63 +213,75 @@ final class ConsoleView: NSObject, NSApplicationDelegate {
 
         captureLabel = NSTextField(labelWithString: "")
         captureLabel.font = NSFont.systemFont(ofSize: 11)
-        captureLabel.frame = NSRect(x: 24, y: 414, width: 472, height: 18)
+        captureLabel.frame = NSRect(x: 24, y: 482, width: 472, height: 18)
         content.addSubview(captureLabel)
 
         // 按钮
         startBtn = NSButton(title: "开启服务", target: self, action: #selector(startService))
         startBtn.bezelStyle = .rounded
         startBtn.keyEquivalent = "\r"
-        startBtn.frame = NSRect(x: 20, y: 372, width: 150, height: 32)
+        startBtn.frame = NSRect(x: 20, y: 440, width: 150, height: 32)
         content.addSubview(startBtn)
 
         stopBtn = NSButton(title: "关闭服务", target: self, action: #selector(stopService))
         stopBtn.bezelStyle = .rounded
-        stopBtn.frame = NSRect(x: 180, y: 372, width: 150, height: 32)
+        stopBtn.frame = NSRect(x: 180, y: 440, width: 150, height: 32)
         content.addSubview(stopBtn)
 
         let refreshBtn = NSButton(title: "刷新状态", target: self, action: #selector(refreshNow))
         refreshBtn.bezelStyle = .rounded
-        refreshBtn.frame = NSRect(x: 350, y: 372, width: 150, height: 32)
+        refreshBtn.frame = NSRect(x: 350, y: 440, width: 150, height: 32)
         content.addSubview(refreshBtn)
 
         // 访问地址
         let addrTitle = NSTextField(labelWithString: "设备访问地址")
         addrTitle.font = NSFont.boldSystemFont(ofSize: 13)
-        addrTitle.frame = NSRect(x: 24, y: 344, width: 200, height: 18)
+        addrTitle.frame = NSRect(x: 24, y: 412, width: 200, height: 18)
         content.addSubview(addrTitle)
 
-        addrField = NSTextField(labelWithString: "")
-        addrField.isSelectable = true
-        addrField.font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
-        addrField.frame = NSRect(x: 24, y: 274, width: 472, height: 66)
-        addrField.maximumNumberOfLines = 4
-        addrField.lineBreakMode = .byWordWrapping
-        addrField.cell?.wraps = true
-        content.addSubview(addrField)
+        // 每一行地址/凭据各自带一个「复制」按钮
+        let addrRowNames = ["本机", "局域网", "同域名", "账号", "密码"]
+        for (i, name) in addrRowNames.enumerated() {
+            let y = 386 - i * 24
+            let f = NSTextField(labelWithString: "\(name)　　—")
+            f.isSelectable = true
+            f.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+            f.frame = NSRect(x: 24, y: y, width: 392, height: 18)
+            f.lineBreakMode = .byTruncatingMiddle
+            content.addSubview(f)
+            addrRows.append(f)
 
-        let copyBtn = NSButton(title: "复制地址", target: self, action: #selector(copyAddresses))
+            let cb = NSButton(title: "复制", target: self, action: #selector(copyRow(_:)))
+            cb.bezelStyle = .rounded
+            cb.tag = i
+            cb.frame = NSRect(x: 424, y: y - 3, width: 72, height: 24)
+            cb.isEnabled = false
+            content.addSubview(cb)
+            addrCopyBtns.append(cb)
+        }
+
+        let copyBtn = NSButton(title: "复制全部", target: self, action: #selector(copyAddresses))
         copyBtn.bezelStyle = .rounded
-        copyBtn.frame = NSRect(x: 24, y: 240, width: 100, height: 26)
+        copyBtn.frame = NSRect(x: 24, y: 246, width: 100, height: 26)
         content.addSubview(copyBtn)
 
         let openBtn = NSButton(title: "在本机打开", target: self, action: #selector(openLocal))
         openBtn.bezelStyle = .rounded
-        openBtn.frame = NSRect(x: 134, y: 240, width: 110, height: 26)
+        openBtn.frame = NSRect(x: 134, y: 246, width: 110, height: 26)
         content.addSubview(openBtn)
 
         let credBtn = NSButton(title: "修改账号密码", target: self, action: #selector(editCredentials))
         credBtn.bezelStyle = .rounded
-        credBtn.frame = NSRect(x: 254, y: 240, width: 130, height: 26)
+        credBtn.frame = NSRect(x: 254, y: 246, width: 130, height: 26)
         content.addSubview(credBtn)
 
         // 访问记录
         let recTitle = NSTextField(labelWithString: "设备访问记录（最近在前）")
         recTitle.font = NSFont.boldSystemFont(ofSize: 13)
-        recTitle.frame = NSRect(x: 24, y: 212, width: 300, height: 18)
+        recTitle.frame = NSRect(x: 24, y: 216, width: 300, height: 18)
         content.addSubview(recTitle)
 
-        visitsBox = NSScrollView(frame: NSRect(x: 22, y: 36, width: 476, height: 168))
+        visitsBox = NSScrollView(frame: NSRect(x: 22, y: 40, width: 476, height: 162))
         visitsBox.hasVerticalScroller = true
         visitsBox.borderType = .lineBorder
         let tv = NSTextView(frame: visitsBox.bounds)
@@ -281,7 +295,7 @@ final class ConsoleView: NSObject, NSApplicationDelegate {
         lastMsg = NSTextField(labelWithString: "")
         lastMsg.font = NSFont.systemFont(ofSize: 11)
         lastMsg.textColor = .secondaryLabelColor
-        lastMsg.frame = NSRect(x: 24, y: 6, width: 472, height: 18)
+        lastMsg.frame = NSRect(x: 24, y: 10, width: 472, height: 18)
         content.addSubview(lastMsg)
 
         // 首次运行自动生成随机密码
@@ -367,9 +381,16 @@ final class ConsoleView: NSObject, NSApplicationDelegate {
 
         let ip = lanIP()
         let host = localHostName()
-        addrField.stringValue = running
-            ? "本机：  http://127.0.0.1:\(PORT)/\n局域网：http://\(ip):\(PORT)/\n同域名：http://\(host).local:\(PORT)/\n账号 \(authUser)    密码 \(authPass)"
-            : "服务未开启，无可用地址\n（开启后这里会列出 3 个访问入口）"
+        let rowNames = ["本机", "局域网", "同域名", "账号", "密码"]
+        let rowValues: [String] = running
+            ? ["http://127.0.0.1:\(PORT)/", "http://\(ip):\(PORT)/",
+               "http://\(host).local:\(PORT)/", authUser, authPass]
+            : ["—", "—", "—", "—", "—"]
+        addrValues = rowValues
+        for (i, name) in rowNames.enumerated() {
+            addrRows[i].stringValue = "\(name)　　\(running ? rowValues[i] : "—")"
+            addrCopyBtns[i].isEnabled = running
+        }
 
         // 抓屏是否真的在工作（看最近一帧的生成时间）
         if running {
@@ -463,12 +484,30 @@ final class ConsoleView: NSObject, NSApplicationDelegate {
         }
     }
 
+    @objc func copyRow(_ sender: NSButton) {
+        let i = sender.tag
+        guard i >= 0, i < addrValues.count else { return }
+        let v = addrValues[i]
+        guard !v.isEmpty, v != "—" else { return }
+        let names = ["本机地址", "局域网地址", "同域名地址", "账号", "密码"]
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(v, forType: .string)
+        lastMsg.stringValue = "已复制\(names[i])：\(v)"
+        sender.title = "已复制"
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak sender] in
+            sender?.title = "复制"
+        }
+    }
+
     @objc func copyAddresses() {
         guard portOpen(PORT) else { return }
-        let text = "http://\(lanIP()):\(PORT)/  账号 \(authUser) 密码 \(authPass)"
+        let text = "本机：http://127.0.0.1:\(PORT)/\n"
+            + "局域网：http://\(lanIP()):\(PORT)/\n"
+            + "同域名：http://\(localHostName()).local:\(PORT)/\n"
+            + "账号 \(authUser)\n密码 \(authPass)"
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
-        lastMsg.stringValue = "局域网地址与账号已复制"
+        lastMsg.stringValue = "三条地址与账号密码已全部复制"
     }
 
     @objc func openLocal() {

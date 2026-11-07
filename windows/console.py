@@ -22,7 +22,7 @@ from tkinter import font as tkfont
 import server as srv
 
 APP_TITLE = "屏幕监听控制台"
-WIN_W, WIN_H = 560, 700
+WIN_W, WIN_H = 560, 760
 
 BG = "#1f1f1f"
 CARD = "#252525"
@@ -116,7 +116,7 @@ class App:
     def _style(self) -> None:
         self.root.title(APP_TITLE)
         self.root.configure(bg=BG)
-        self.root.minsize(WIN_W, 640)
+        self.root.minsize(WIN_W, 700)
         ico = resource_path(os.path.join("assets", "AppIcon.ico"))
         try:
             self.root.iconbitmap(ico)
@@ -168,13 +168,22 @@ class App:
         self.btn_refresh.pack(side="right")
 
         tk.Label(outer, text="设备访问地址", font=FONT_BOLD, bg=BG, fg=TEXT).pack(anchor="w", pady=(14, 6))
-        self.addr_label = tk.Label(outer, text="", font=FONT_MONO, bg=BG, fg="#d6d6d6",
-                                   justify="left", anchor="w")
-        self.addr_label.pack(fill="x")
+        self.addr_rows = []
+        self.addr_values = ["—"] * 5
+        for i, name in enumerate(("本机", "局域网", "同域名", "账号", "密码")):
+            r = tk.Frame(outer, bg=BG)
+            r.pack(fill="x", pady=(0, 2))
+            lbl = tk.Label(r, text="%s　　—" % name, font=FONT_MONO, bg=BG, fg="#d6d6d6",
+                           anchor="w", justify="left")
+            lbl.pack(side="left", fill="x", expand=True)
+            btn = self._btn(r, "复制", lambda i=i: self.on_copy_row(i), width=6)
+            btn.pack(side="right")
+            btn.configure(state="disabled")
+            self.addr_rows.append((lbl, btn))
 
         row2 = tk.Frame(outer, bg=BG)
         row2.pack(fill="x", pady=(10, 0))
-        self._btn(row2, "复制地址", self.on_copy, width=12).pack(side="left")
+        self._btn(row2, "复制全部", self.on_copy, width=12).pack(side="left")
         self._btn(row2, "在本机打开", self.on_open, width=12).pack(side="left", padx=8)
         self._btn(row2, "修改账号密码", self.on_edit, width=14).pack(side="right")
 
@@ -217,14 +226,21 @@ class App:
         ip = srv.lan_ip()
         host = socket.gethostname()
         if running:
-            self.addr_label.configure(
-                text=("本机：  http://127.0.0.1:%d/\n"
-                      "局域网：http://%s:%d/\n"
-                      "同域名：http://%s:%d/\n"
-                      "账号 %s    密码 %s") % (srv.PORT, ip, srv.PORT, host, srv.PORT,
-                                              self.auth_user, self.auth_pass))
+            row_values = [
+                "http://127.0.0.1:%d/" % srv.PORT,
+                "http://%s:%d/" % (ip, srv.PORT),
+                "http://%s:%d/" % (host, srv.PORT),
+                self.auth_user,
+                self.auth_pass,
+            ]
         else:
-            self.addr_label.configure(text="（服务未开启）")
+            row_values = ["—"] * 5
+        self.addr_values = row_values
+        for (lbl, btn), name, val in zip(self.addr_rows,
+                                         ("本机", "局域网", "同域名", "账号", "密码"),
+                                         row_values):
+            lbl.configure(text="%s　　%s" % (name, val))
+            btn.configure(state="normal" if running else "disabled")
 
         self._update_capture_line(running)
         self._update_records()
@@ -314,11 +330,31 @@ class App:
             self._msg = "服务未开启，没有可复制的地址"
             self.refresh()
             return
-        text = "http://%s:%d/  账号 %s 密码 %s" % (srv.lan_ip(), srv.PORT,
-                                                   self.auth_user, self.auth_pass)
+        names = ("本机", "局域网", "同域名", "账号", "密码")
+        text = "\n".join("%s：%s" % (n, v)
+                         for n, v in zip(names, self.addr_values))
         self.root.clipboard_clear()
         self.root.clipboard_append(text)
-        self._msg = "地址和账号密码已复制到剪贴板"
+        self._msg = "三条地址与账号密码已全部复制到剪贴板"
+        self.refresh()
+
+    def on_copy_row(self, idx: int) -> None:
+        if not srv.is_running():
+            self._msg = "服务未开启，没有可复制的内容"
+            self.refresh()
+            return
+        names = ("本机地址", "局域网地址", "同域名地址", "账号", "密码")
+        if idx < 0 or idx >= len(self.addr_values):
+            return
+        val = self.addr_values[idx]
+        if not val or val == "—":
+            return
+        self.root.clipboard_clear()
+        self.root.clipboard_append(val)
+        self._msg = "已复制%s：%s" % (names[idx], val)
+        btn = self.addr_rows[idx][1]
+        btn.configure(text="已复制")
+        self.root.after(1200, lambda: btn.configure(text="复制"))
         self.refresh()
 
     def on_open(self) -> None:

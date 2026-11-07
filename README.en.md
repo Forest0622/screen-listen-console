@@ -28,13 +28,13 @@ This one was captured on a native **Windows 11 (ARM64, build 10.0.26300.9457)** 
 
 > That VM has no working network adapter (e1000e has no Windows 11 ARM driver and VMware Tools is not installed), so the “局域网” line falls back to `127.0.0.1` and the host-name line shows the machine name `DESKTOP-T60DSQD`. A normally networked Windows box shows its real LAN IP. The password in the shot is the temporary random value generated inside that VM.
 
-> The macOS screenshots use demo values (`192.168.1.23`, `demo-mac.local`, `Demo-Pass-2f9K`), not real network details.
+> The macOS screenshots are real captures from this Mac: the password was temporarily set to the demo value `Demo-Pass-2f9K` (not the real one), while the LAN and hostname lines show this machine's actual local address and host name.
 
 ## What it does
 
 - Status box: service on/off, listening port, whether capture is healthy (with the age of the latest frame)
 - Buttons: start service / stop service / refresh status
-- Access URLs: `127.0.0.1`, the LAN IP, and the `.local` hostname — copy one or open it locally; the current username and password are printed right below them
+- Device access info: `127.0.0.1`, the LAN IP, the `.local` hostname, the username and the password each get **their own row with its own “Copy” button**, so you copy exactly the one value you need — username and password are separate buttons too, no more copying a whole block and trimming it by hand. Below that, “Copy all” copies the five rows at once and “Open locally” launches the browser
 - **Change credentials**: opens a small dialog to edit the username/password, or hit "random" to generate a 14-character password; saving takes effect immediately
 - Access log: per-client IP, first/last visit, hit count, number of pages opened
 
@@ -103,7 +103,7 @@ Two things will always happen on someone else's Mac — they are not bugs:
 
 The Windows edition is a separate implementation with the same behaviour: a Python + Tkinter console, screen capture through Pillow (GDI), and **the same server endpoints, port, authentication, config file format and on-screen information** as the macOS build.
 
-**Install**: download `ScreenListenConsoleSetup-1.2.0.exe` and run it. No administrator rights needed — it installs per user; a "Screen Listen Console" shortcut appears in the Start menu (and on the desktop if you tick the box).
+**Install**: download `ScreenListenConsoleSetup-1.3.0.exe` and run it. No administrator rights needed — it installs per user; a "Screen Listen Console" shortcut appears in the Start menu (and on the desktop if you tick the box).
 
 **Use**: open it, press "Start service". The window shows three entry points — `http://127.0.0.1:6080/`, the LAN IP and the computer name — plus the current username and password.
 
