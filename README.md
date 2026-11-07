@@ -12,11 +12,15 @@ App 本身是一个轻量控制台：只负责开关服务、显示状态、给�
 
 ## 界面截图
 
-| 主界面 | 修改账号密码 |
+| macOS 主界面 | macOS 修改账号密码 |
 |---|---|
 | ![主界面](docs/images/ui-main.png) | ![修改账号密码](docs/images/ui-password.png) |
 
-> 截图中的地址与密码已换成演示值（`192.168.1.23`、`demo-mac.local`、`Demo-Pass-2f9K`），不是真实网络信息。
+Windows 版控制台（这一张是 GitHub Actions 的 Windows 运行器上实拍的，密码为当次临时生成值）：
+
+![Windows 界面](docs/images/windows-main.png)
+
+> macOS 两张截图里的地址与密码已换成演示值（`192.168.1.23`、`demo-mac.local`、`Demo-Pass-2f9K`），不是真实网络信息。
 
 ## 它长什么样
 

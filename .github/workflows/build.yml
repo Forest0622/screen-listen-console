@@ -84,11 +84,12 @@ jobs:
         shell: pwsh
         run: |
           $env:RV_PORT = "16082"
-          $out = Join-Path $env:GITHUB_WORKSPACE "windows/dist/selftest.json"
-          & .\windows\dist\ScreenListenConsole.exe --selftest "--selftest-out=$out"
-          $code = $LASTEXITCODE
-          if (Test-Path $out) { Get-Content $out -Raw -Encoding UTF8 }
-          if ($code -ne 0) { Write-Host "selftest failed: $code"; exit $code }
+          $out = Join-Path $env:GITHUB_WORKSPACE "windows\dist\selftest.json"
+          if (Test-Path $out) { Remove-Item $out -Force }
+          $p = Start-Process -FilePath ".\windows\dist\ScreenListenConsole.exe" -ArgumentList @("--selftest", "--selftest-out=$out") -Wait -PassThru
+          if (-not (Test-Path $out)) { Write-Host "selftest json missing"; exit 1 }
+          Get-Content $out -Raw -Encoding UTF8
+          if ($p.ExitCode -ne 0) { Write-Host "selftest exit code: $($p.ExitCode)"; exit $p.ExitCode }
 
       - name: 界面截图 / GUI screenshot (可选)
         continue-on-error: true

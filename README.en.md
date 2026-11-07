@@ -12,11 +12,15 @@ The app is just a console: start/stop the service, show status, list the URLs to
 
 ## Screenshots
 
-| Main window | Change credentials |
+| macOS main window | macOS change credentials |
 |---|---|
 | ![main](docs/images/ui-main.png) | ![password](docs/images/ui-password.png) |
 
-> Addresses and password in the screenshots are demo values (`192.168.1.23`, `demo-mac.local`, `Demo-Pass-2f9K`), not real network details.
+Windows console (captured on a GitHub Actions Windows runner; the password is the throwaway value generated for that run):
+
+![Windows window](docs/images/windows-main.png)
+
+> The macOS screenshots use demo values (`192.168.1.23`, `demo-mac.local`, `Demo-Pass-2f9K`), not real network details.
 
 ## What it does
 
