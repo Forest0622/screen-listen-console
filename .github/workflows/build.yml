@@ -1,0 +1,59 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - name: 检出代码 / Checkout
+        uses: actions/checkout@v4
+
+      - name: 环境信息 / Toolchain
+        run: |
+          sw_vers
+          swiftc --version
+          python3 --version
+
+      - name: 编译 App / Build app
+        run: ./make-app.sh dist
+
+      - name: 打包 DMG / Build DMG
+        run: ./make-dmg.sh dist
+
+      - name: 校验产物 / Verify
+        run: |
+          ls -lh dist
+          test -x "dist/屏幕监听控制.app/Contents/MacOS/ScreenListenConsole"
+          test -f "dist/屏幕监听控制-安装包.dmg"
+          python3 -c "import ast,sys;ast.parse(open('server.py',encoding='utf-8').read());print('server.py syntax ok')"
+
+      - name: 规范产物名 / ASCII asset name
+        if: startsWith(github.ref, 'refs/tags/')
+        run: cp "dist/屏幕监听控制-安装包.dmg" "dist/ScreenListenConsole-${GITHUB_REF_NAME}.dmg"
+
+      - name: 上传产物 / Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ScreenListenConsole-dmg
+          path: dist/屏幕监听控制-安装包.dmg
+          if-no-files-found: error
+
+      - name: 发布 Release / Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/ScreenListenConsole-*.dmg
+          generate_release_notes: true
+          body: |
+            首次运行会在 `~/.remote-view/config.json` 里生成随机密码，也可以在 App 里点「修改账号密码」修改。
+
+            安装后必须给 App 授权「屏幕录制」，然后 `⌘Q` 退出重开一次。
