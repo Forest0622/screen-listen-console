@@ -117,6 +117,8 @@ python -m PyInstaller --noconfirm --onefile --windowed --name ScreenListenConsol
 
 There is no Screen Recording permission gate on Windows. The service still listens on `0.0.0.0:6080`; the Windows firewall asks once on first start — allow the private network.
 
+The installer is not code-signed, so SmartScreen may warn on first run ("Windows protected your PC"): click "More info" → "Run anyway". It is the Windows counterpart of the macOS Gatekeeper prompt.
+
 ## Continuous integration
 
 `.github/workflows/build.yml` runs two runners per push/PR: macOS compiles the app and builds the DMG; Windows builds the `.exe` with PyInstaller and wraps it in an Inno Setup installer. The Windows job first runs a self-test (config creation, 401/200 auth, frame output, hot reload, page content, produced exe), and only then produces the installer. A `v*` tag creates a Release with both the DMG and the Windows installer.

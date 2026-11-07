@@ -117,6 +117,8 @@ python -m PyInstaller --noconfirm --onefile --windowed --name ScreenListenConsol
 
 Windows 上没有「屏幕录制」授权这一关，装完直接能用。服务同样监听 `0.0.0.0:6080`，首次启动 Windows 防火墙会弹窗，选「允许专用网络」。
 
+安装包没有做代码签名，首次运行 Windows 可能会弹 SmartScreen 提示（「Windows 已保护你的电脑」）：点「更多信息」→「仍要运行」即可，这和 macOS 上的 Gatekeeper 提示是一回事。
+
 ## 自动构建
 
 `.github/workflows/build.yml` 在每次 push / PR 时并行跑两个 runner：macOS 上编译 App、打 DMG，Windows 上用 PyInstaller 打包 `.exe` 并生成 Inno Setup 安装包；Windows 任务会先跑一遍自检（配置生成、401/200 认证、出帧、热加载、页面内容、exe 产物），全部通过才产出安装包。推一个 `v*` 标签时自动创建 Release，同时附上 DMG 和 Windows 安装包。
