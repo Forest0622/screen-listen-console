@@ -242,7 +242,7 @@ final class ConsoleView: NSObject, NSApplicationDelegate {
         // 每一行地址/凭据各自带一个「复制」按钮
         let addrRowNames = ["本机", "局域网", "同域名", "账号", "密码"]
         for (i, name) in addrRowNames.enumerated() {
-            let y = 386 - i * 24
+            let y = 386 - i * 28
             let f = NSTextField(labelWithString: "\(name)　　—")
             f.isSelectable = true
             f.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
@@ -254,7 +254,7 @@ final class ConsoleView: NSObject, NSApplicationDelegate {
             let cb = NSButton(title: "复制", target: self, action: #selector(copyRow(_:)))
             cb.bezelStyle = .rounded
             cb.tag = i
-            cb.frame = NSRect(x: 424, y: y - 3, width: 72, height: 24)
+            cb.frame = NSRect(x: 424, y: y - 3, width: 72, height: 22)
             cb.isEnabled = false
             content.addSubview(cb)
             addrCopyBtns.append(cb)

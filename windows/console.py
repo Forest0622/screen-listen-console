@@ -172,7 +172,7 @@ class App:
         self.addr_values = ["—"] * 5
         for i, name in enumerate(("本机", "局域网", "同域名", "账号", "密码")):
             r = tk.Frame(outer, bg=BG)
-            r.pack(fill="x", pady=(0, 2))
+            r.pack(fill="x", pady=(0, 8))
             lbl = tk.Label(r, text="%s　　—" % name, font=FONT_MONO, bg=BG, fg="#d6d6d6",
                            anchor="w", justify="left")
             lbl.pack(side="left", fill="x", expand=True)
