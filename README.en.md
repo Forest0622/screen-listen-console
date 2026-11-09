@@ -10,6 +10,24 @@ The app is just a console: start/stop the service, show status, list the URLs to
 
 [中文说明](README.md)
 
+## Quick Download
+
+**macOS (paste into Terminal):**
+
+```bash
+curl -L -o ~/Downloads/ScreenListenConsole.dmg \
+  https://github.com/Forest0622/screen-listen-console/releases/latest/download/ScreenListenConsole-v1.3.2.dmg \
+  && open ~/Downloads/ScreenListenConsole.dmg
+```
+
+**Windows (PowerShell):**
+
+```powershell
+Invoke-WebRequest -Uri "https://github.com/Forest0622/screen-listen-console/releases/latest/download/ScreenListenConsoleSetup-1.3.2.exe" -OutFile "$env:USERPROFILE\Downloads\ScreenListenConsoleSetup.exe"
+```
+
+> Open the DMG / EXE after download and follow the installer. On macOS, allow the app in System Settings → Privacy & Security on first launch.
+
 ## Screenshots
 
 | macOS main window | macOS change credentials |
@@ -103,7 +121,7 @@ Two things will always happen on someone else's Mac — they are not bugs:
 
 The Windows edition is a separate implementation with the same behaviour: a Python + Tkinter console, screen capture through Pillow (GDI), and **the same server endpoints, port, authentication, config file format and on-screen information** as the macOS build.
 
-**Install**: download `ScreenListenConsoleSetup-1.3.1.exe` and run it. No administrator rights needed — it installs per user; a "Screen Listen Console" shortcut appears in the Start menu (and on the desktop if you tick the box).
+**Install**: download `ScreenListenConsoleSetup-1.3.2.exe` and run it. No administrator rights needed — it installs per user; a "Screen Listen Console" shortcut appears in the Start menu (and on the desktop if you tick the box).
 
 **Use**: open it, press "Start service". The window shows three entry points — `http://127.0.0.1:6080/`, the LAN IP and the computer name — plus the current username and password.
 

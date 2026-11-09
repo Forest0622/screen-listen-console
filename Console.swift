@@ -169,7 +169,7 @@ final class ConsoleView: NSObject, NSApplicationDelegate {
             contentRect: NSRect(x: 0, y: 0, width: 520, height: 668),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered, defer: false)
-        window.title = "屏幕监听控制台"
+        window.title = "屏幕监听控制台 v1.3.2"
         window.center()
         window.isReleasedWhenClosed = false
         let content = NSView(frame: NSRect(x: 0, y: 0, width: 520, height: 668))
