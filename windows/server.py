@@ -441,14 +441,34 @@ def is_running() -> bool:
 
 
 def lan_ip() -> str:
+    # 先试标准方法：连接外部地址获取出口网卡IP
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0]
         s.close()
-        return ip
+        if not ip.startswith("127."):
+            return ip
     except Exception:
-        return "127.0.0.1"
+        pass
+    # 备选：遍历所有网卡，找第一个非回环的私有IP
+    try:
+        hostname = socket.gethostname()
+        for addr in socket.gethostbyname_ex(hostname)[2]:
+            if addr.startswith("127."):
+                continue
+            # 优先私有网段
+            if (addr.startswith("192.168.") or
+                addr.startswith("10.") or
+                addr.startswith("172.")):
+                return addr
+        # 都不是私有网段就返回第一个非回环IP
+        for addr in socket.gethostbyname_ex(hostname)[2]:
+            if not addr.startswith("127."):
+                return addr
+    except Exception:
+        pass
+    return "127.0.0.1"
 
 
 # ---------------------------------------------------------------- 自检
