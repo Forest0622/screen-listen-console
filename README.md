@@ -16,14 +16,14 @@ App 本身是一个轻量控制台：只负责开关服务、显示状态、给�
 
 ```bash
 curl -L -o ~/Downloads/ScreenListenConsole.dmg \
-  https://github.com/Forest0622/screen-listen-console/releases/latest/download/ScreenListenConsole-v1.3.2.dmg \
+  https://github.com/Forest0622/screen-listen-console/releases/latest/download/ScreenListenConsole-v1.3.3.dmg \
   && open ~/Downloads/ScreenListenConsole.dmg
 ```
 
 **Windows（PowerShell）：**
 
 ```powershell
-Invoke-WebRequest -Uri "https://github.com/Forest0622/screen-listen-console/releases/latest/download/ScreenListenConsoleSetup-1.3.2.exe" -OutFile "$env:USERPROFILE\Downloads\ScreenListenConsoleSetup.exe"
+Invoke-WebRequest -Uri "https://github.com/Forest0622/screen-listen-console/releases/latest/download/ScreenListenConsoleSetup-1.3.3.exe" -OutFile "$env:USERPROFILE\Downloads\ScreenListenConsoleSetup.exe"
 ```
 
 > 下载后打开 DMG / EXE 按提示安装即可。macOS 首次运行需在「系统设置 → 隐私与安全性」里允许打开。
@@ -121,7 +121,7 @@ DMG 内含 App、一个指向「应用程序」的软链和一份使用说明，
 
 Windows 版是独立实现的同款：Python + Tkinter 控制台，截图换成 Pillow（GDI），**服务端接口、端口、认证方式、配置文件格式、界面上显示的信息都与 macOS 版一致**。
 
-**安装**：下载 `ScreenListenConsoleSetup-1.3.2.exe` 双击运行，不需要管理员权限，装在当前用户目录下；装完开始菜单和桌面（安装时勾选）会有「屏幕监听控制」。
+**安装**：下载 `ScreenListenConsoleSetup-1.3.3.exe` 双击运行，不需要管理员权限，装在当前用户目录下；装完开始菜单和桌面（安装时勾选）会有「屏幕监听控制」。
 
 **使用**：打开后点「开启服务」，界面会给出 `http://127.0.0.1:6080/`、局域网 IP、计算机名三个入口，以及当前账号密码。
 

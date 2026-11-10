@@ -381,6 +381,22 @@ class QuietServer(ThreadingHTTPServer):
         super().handle_error(request, client_address)
 
 
+def _ensure_firewall(port: int) -> None:
+    """自动加 Windows 防火墙入站规则放行端口（需要管理员权限，失败则静默）"""
+    import subprocess
+    rule = "ScreenListenConsole-%d" % port
+    try:
+        subprocess.run(
+            ["netsh", "advfirewall", "firewall", "add", "rule",
+             "name=" + rule, "dir=in", "action=allow",
+             "protocol=TCP", "localport=%d" % port],
+            capture_output=True, timeout=5,
+            creationflags=0x08000000,  # CREATE_NO_WINDOW
+        )
+    except Exception:
+        pass
+
+
 def start_server(port: int = None) -> None:
     """在当前进程内启动服务（GUI 也用这个入口）"""
     global _server
@@ -390,6 +406,7 @@ def start_server(port: int = None) -> None:
         _ensure_dirs()
         current_credentials()
         _dump_clients(force=True)
+        _ensure_firewall(port or PORT)
         with _lock:
             _state["jpeg"] = None
             _state["ts"] = 0.0

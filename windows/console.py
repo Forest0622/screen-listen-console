@@ -21,7 +21,7 @@ from tkinter import font as tkfont
 
 import server as srv
 
-APP_TITLE = "屏幕监听控制台 v1.3.2"
+APP_TITLE = "屏幕监听控制台 v1.3.3"
 WIN_W, WIN_H = 560, 760
 
 BG = "#1f1f1f"
@@ -229,7 +229,7 @@ class App:
             row_values = [
                 "http://127.0.0.1:%d/" % srv.PORT,
                 "http://%s:%d/" % (ip, srv.PORT),
-                "http://%s:%d/" % (host, srv.PORT),
+                "http://%s.local:%d/" % (host, srv.PORT),
                 self.auth_user,
                 self.auth_pass,
             ]
