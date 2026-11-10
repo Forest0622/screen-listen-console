@@ -21,7 +21,7 @@ from tkinter import font as tkfont
 
 import server as srv
 
-APP_TITLE = "屏幕监听控制台 v1.3.3"
+APP_TITLE = "屏幕监听控制台 v1.3.4"
 WIN_W, WIN_H = 560, 760
 
 BG = "#1f1f1f"
