@@ -1,5 +1,5 @@
 ﻿#define MyAppName "屏幕监听控制"
-#define MyAppVersion "1.3.4"
+#define MyAppVersion "1.3.5"
 #define MyAppExeName "ScreenListenConsole.exe"
 
 [Setup]

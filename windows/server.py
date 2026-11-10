@@ -317,6 +317,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(401)
         self.send_header("WWW-Authenticate", 'Basic realm="screen-listen"')
         self.send_header("Content-Length", "0")
+        self.send_header("Connection", "close")
         self.end_headers()
         return False
 

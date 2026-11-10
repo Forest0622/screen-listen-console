@@ -21,7 +21,7 @@ from tkinter import font as tkfont
 
 import server as srv
 
-APP_TITLE = "屏幕监听控制台 v1.3.4"
+APP_TITLE = "屏幕监听控制台 v1.3.5"
 WIN_W, WIN_H = 560, 760
 
 BG = "#1f1f1f"
@@ -224,7 +224,7 @@ class App:
         self.btn_stop.configure(state="normal" if running else "disabled")
 
         ip = srv.lan_ip()
-        host = socket.gethostname()
+        host = socket.gethostname().lower()
         if running:
             row_values = [
                 "http://127.0.0.1:%d/" % srv.PORT,
